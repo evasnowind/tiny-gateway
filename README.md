@@ -1,2 +1,7 @@
 # tiny-gateway
-an api gateway based on Netty 4.
+An API gateway based on Netty 4.
+
+
+
+## 参考资料
+- [kimmking JavaCourse](https://github.com/kimmking/JavaCourseCodes) 
