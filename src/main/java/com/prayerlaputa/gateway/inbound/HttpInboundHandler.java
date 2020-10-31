@@ -2,6 +2,7 @@ package com.prayerlaputa.gateway.inbound;
 
 import com.prayerlaputa.gateway.outbound.HttpGatewayOutboundHandler;
 import com.prayerlaputa.gateway.outbound.httpclient4.HttpOutboundHandler;
+import com.prayerlaputa.gateway.outbound.okhttp.OkHttpOutboundHandler;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelInboundHandlerAdapter;
 import io.netty.handler.codec.http.FullHttpRequest;
@@ -17,7 +18,18 @@ public class HttpInboundHandler extends ChannelInboundHandlerAdapter {
     
     public HttpInboundHandler(String proxyServer) {
         this.proxyServer = proxyServer;
-        handler = new HttpOutboundHandler(this.proxyServer);
+//        handler = new HttpOutboundHandler(this.proxyServer);
+        handler = new OkHttpOutboundHandler(this.proxyServer);
+
+        /*
+        TODO 利用SPI将handler做成可配置？
+         这里是创建channel时调用的，目前的实现中，每次创建一个新的channel，都会调用，
+         用SPI的方式不合适。后面可以这样：使用Netty中的单例模式（@Shareable），优化此处的handler，维持一个单独的线程池处理网络请求，共享handler。
+         */
+//        ServiceLoader<HttpGatewayOutboundHandler> serviceLoader = ServiceLoader.load(HttpGatewayOutboundHandler.class);
+//        for (HttpGatewayOutboundHandler outboundHandler : serviceLoader) {
+//            handler = outboundHandler;
+//        }
     }
     
     @Override
@@ -30,26 +42,11 @@ public class HttpInboundHandler extends ChannelInboundHandlerAdapter {
         try {
             //logger.info("channelRead流量接口请求开始，时间为{}", startTime);
             FullHttpRequest fullRequest = (FullHttpRequest) msg;
-//            String uri = fullRequest.uri();
-//            //logger.info("接收到的请求url为{}", uri);
-//            if (uri.contains("/test")) {
-//                handlerTest(fullRequest, ctx);
-//            }
-    
             handler.handle(fullRequest, ctx);
-    
         } catch(Exception e) {
-            e.printStackTrace();
+            logger.error("HttpInboundHandler#channelRead: ", e);
         } finally {
             ReferenceCountUtil.release(msg);
         }
     }
-
-//
-//    @Override
-//    public void exceptionCaught(ChannelHandlerContext ctx, Throwable cause) {
-//        cause.printStackTrace();
-//        ctx.close();
-//    }
-
 }

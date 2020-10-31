@@ -1,4 +1,4 @@
-package com.prayerlaputa.gateway.outbound.netty4;//package io.github.kimmking.gateway.outbound;
+package com.prayerlaputa.gateway.outbound.netty4;
 //
 //import io.netty.bootstrap.Bootstrap;
 //import io.netty.channel.ChannelFuture;
@@ -34,7 +34,7 @@ package com.prayerlaputa.gateway.outbound.netty4;//package io.github.kimmking.ga
 //            // Start the client.
 //            ChannelFuture f = b.connect(host, port).sync();
 //
-//           
+//
 //            f.channel().write(request);
 //            f.channel().flush();
 //            f.channel().closeFuture().sync();
