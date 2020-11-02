@@ -9,7 +9,6 @@ import io.netty.handler.codec.http.DefaultFullHttpResponse;
 import io.netty.handler.codec.http.FullHttpRequest;
 import io.netty.handler.codec.http.FullHttpResponse;
 import io.netty.handler.codec.http.HttpHeaders;
-import io.netty.handler.codec.http.HttpMessage;
 import static io.netty.handler.codec.http.HttpResponseStatus.NO_CONTENT;
 import static io.netty.handler.codec.http.HttpResponseStatus.OK;
 import io.netty.handler.codec.http.HttpUtil;
@@ -20,13 +19,13 @@ import okhttp3.Headers;
 import okhttp3.OkHttpClient;
 import okhttp3.Request;
 import okhttp3.Response;
-import org.apache.http.client.methods.RequestBuilder;
 import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
-import java.util.Iterator;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
@@ -39,9 +38,27 @@ public class OkHttpOutboundHandler extends HttpGatewayOutboundWithHookHandler {
 
     private OkHttpClient client;
     private String backendUrl;
+    private List<String> endpointUrlList;
 
     public OkHttpOutboundHandler(String backendUrl) {
         this.backendUrl = backendUrl.endsWith("/") ? backendUrl.substring(0, backendUrl.length() - 1) : backendUrl;
+
+        init();
+    }
+
+    public OkHttpOutboundHandler(List<String> proxyServerList) {
+        this.endpointUrlList = new ArrayList<>();
+        if (null != proxyServerList && proxyServerList.size() > 0) {
+            for (String url : proxyServerList) {
+                String tmp = url.endsWith("/") ? url.substring(0, url.length() - 1) : url;
+                endpointUrlList.add(tmp);
+            }
+        }
+
+        init();
+    }
+
+    private void init() {
         //添加filter
         this.addHookBeforeHandlingRequest(new HttpHeaderRequestFilter());
 
@@ -54,9 +71,15 @@ public class OkHttpOutboundHandler extends HttpGatewayOutboundWithHookHandler {
                 .build();
     }
 
+
     @Override
-    public void processRequest(FullHttpRequest fullRequest, ChannelHandlerContext ctx) throws NoSuchMethodException {
-        final String url = this.backendUrl + fullRequest.uri();
+    public void processRequest(FullHttpRequest fullRequest, ChannelHandlerContext ctx) throws Exception {
+        String endpoint = this.httpEndpointRouter.route(endpointUrlList);
+        System.out.println("endpoint url=" + endpoint);
+        if (null == endpoint) {
+            throw new IllegalAccessException("无法找到后端应用！");
+        }
+        final String url = endpoint + fullRequest.uri();
         processGetRequest(fullRequest, ctx, url);
     }
 
@@ -66,7 +89,7 @@ public class OkHttpOutboundHandler extends HttpGatewayOutboundWithHookHandler {
         builder.url(url);
         for (Map.Entry<String, String> entry : fullHttpRequest.headers().entries()) {
             builder.addHeader(entry.getKey(), entry.getValue());
-            System.out.println("request header <k,v>=(" + entry.getKey() + "," + entry.getValue() + ")");
+//            System.out.println("request header <k,v>=(" + entry.getKey() + "," + entry.getValue() + ")");
         }
         return builder.build();
     }

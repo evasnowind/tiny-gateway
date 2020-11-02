@@ -9,21 +9,24 @@ import io.netty.util.ReferenceCountUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.List;
+
 public class HttpInboundHandler extends ChannelInboundHandlerAdapter {
 
     private static Logger logger = LoggerFactory.getLogger(HttpInboundHandler.class);
-    private final String proxyServer;
+    private String proxyServer;
+    private List<String> proxyServerList;
     private HttpGatewayOutboundWithHookHandler handler;
     
     public HttpInboundHandler(String proxyServer) {
         this.proxyServer = proxyServer;
 //        handler = new HttpOutboundHandler(this.proxyServer);
         handler = new OkHttpOutboundHandler(this.proxyServer);
+    }
 
-        /*
-        TODO 这里是创建channel时调用的，目前的实现中，每次创建一个新的channel，都会调用，
-         后面可以这样：使用Netty中的单例模式（@Shareable），优化此处的handler，维持一个单独的线程池处理网络请求，共享handler。
-         */
+    public HttpInboundHandler(List<String> proxyServerList) {
+        this.proxyServerList = proxyServerList;
+        handler = new OkHttpOutboundHandler(proxyServerList);
     }
     
     @Override

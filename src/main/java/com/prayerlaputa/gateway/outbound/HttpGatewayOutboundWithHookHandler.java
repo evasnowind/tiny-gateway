@@ -1,6 +1,8 @@
 package com.prayerlaputa.gateway.outbound;
 
 import com.prayerlaputa.gateway.filter.HttpRequestFilter;
+import com.prayerlaputa.gateway.router.HttpEndpointRouter;
+import com.prayerlaputa.gateway.router.impl.RoundRobinEndpointRouter;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.handler.codec.http.FullHttpRequest;
 
@@ -16,15 +18,17 @@ import java.util.List;
  * @author chenglong.yu
  * created on 2020/11/2
  */
-public class HttpGatewayOutboundWithHookHandler{
+public class HttpGatewayOutboundWithHookHandler {
 
     /**
      * 此处可以进一步扩展：添加filter时使用TreeMap,保存
      */
-    List<HttpRequestFilter> hooksBeforeHandlingRequest = new ArrayList<>();
-    List<HttpRequestFilter> hooksAfterHandledRequest = new ArrayList<>();
+    private List<HttpRequestFilter> hooksBeforeHandlingRequest = new ArrayList<>();
+    private List<HttpRequestFilter> hooksAfterHandledRequest = new ArrayList<>();
 
-    public void handle(final FullHttpRequest fullRequest, final ChannelHandlerContext ctx) throws NoSuchMethodException {
+    protected HttpEndpointRouter httpEndpointRouter = new RoundRobinEndpointRouter();
+
+    public void handle(final FullHttpRequest fullRequest, final ChannelHandlerContext ctx) throws Exception {
         if (!hooksBeforeHandlingRequest.isEmpty()) {
             //执行处理请求前的filter
             for (HttpRequestFilter filter : hooksBeforeHandlingRequest) {
@@ -42,7 +46,7 @@ public class HttpGatewayOutboundWithHookHandler{
         }
     }
 
-    public void processRequest(final FullHttpRequest fullRequest, final ChannelHandlerContext ctx) throws NoSuchMethodException{
+    public void processRequest(final FullHttpRequest fullRequest, final ChannelHandlerContext ctx) throws Exception{
         throw new NoSuchMethodException("processRequest方法没有被定义！");
     }
 
