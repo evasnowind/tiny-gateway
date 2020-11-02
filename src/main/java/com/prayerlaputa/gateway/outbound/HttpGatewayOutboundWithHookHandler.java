@@ -2,6 +2,7 @@ package com.prayerlaputa.gateway.outbound;
 
 import com.prayerlaputa.gateway.filter.HttpRequestFilter;
 import com.prayerlaputa.gateway.router.HttpEndpointRouter;
+import com.prayerlaputa.gateway.router.impl.HashHttpEndpointRouter;
 import com.prayerlaputa.gateway.router.impl.RoundRobinEndpointRouter;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.handler.codec.http.FullHttpRequest;
@@ -20,12 +21,10 @@ import java.util.List;
  */
 public class HttpGatewayOutboundWithHookHandler {
 
-    /**
-     * 此处可以进一步扩展：添加filter时使用TreeMap,保存
-     */
     private List<HttpRequestFilter> hooksBeforeHandlingRequest = new ArrayList<>();
     private List<HttpRequestFilter> hooksAfterHandledRequest = new ArrayList<>();
 
+//    protected HttpEndpointRouter httpEndpointRouter = new HashHttpEndpointRouter();
     protected HttpEndpointRouter httpEndpointRouter = new RoundRobinEndpointRouter();
 
     public void handle(final FullHttpRequest fullRequest, final ChannelHandlerContext ctx) throws Exception {

@@ -1,7 +1,6 @@
 package com.prayerlaputa.gateway.backend.netty;
 
 import java.io.IOException;
-import java.util.Scanner;
 
 /**
  * @author chenglong.yu
@@ -9,14 +8,6 @@ import java.util.Scanner;
  */
 public class NettyBackendServerDemo {
     public static void main(String[] args) {
-
-//        HttpServer server = new HttpServer(false,18807);
-//        try {
-//            server.run();
-//        }catch (Exception ex){
-//            ex.printStackTrace();
-//        }
-
         try {
             startNewThread(18805);
             startNewThread(18806);
@@ -36,6 +27,5 @@ public class NettyBackendServerDemo {
                 ex.printStackTrace();
             }
         }, "thread-port-" + port).start();
-
     }
 }
