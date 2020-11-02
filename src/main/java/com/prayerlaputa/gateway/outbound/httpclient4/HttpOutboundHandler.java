@@ -1,7 +1,7 @@
 package com.prayerlaputa.gateway.outbound.httpclient4;
 
 
-import com.prayerlaputa.gateway.outbound.HttpGatewayOutboundHandler;
+import com.prayerlaputa.gateway.outbound.HttpGatewayOutboundWithHookHandler;
 import com.prayerlaputa.gateway.util.NamedThreadFactory;
 import io.netty.buffer.Unpooled;
 import io.netty.channel.ChannelFutureListener;
@@ -29,7 +29,7 @@ import java.util.concurrent.RejectedExecutionHandler;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 
-public class HttpOutboundHandler implements HttpGatewayOutboundHandler {
+public class HttpOutboundHandler extends HttpGatewayOutboundWithHookHandler {
 
     private CloseableHttpAsyncClient httpclient;
     private ExecutorService proxyService;

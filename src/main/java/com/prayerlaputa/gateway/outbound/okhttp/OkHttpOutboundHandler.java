@@ -1,44 +1,39 @@
 package com.prayerlaputa.gateway.outbound.okhttp;
 
-import com.prayerlaputa.gateway.inbound.HttpInboundServer;
-import com.prayerlaputa.gateway.outbound.HttpGatewayOutboundHandler;
-import com.prayerlaputa.gateway.util.NamedThreadFactory;
+import com.prayerlaputa.gateway.filter.impl.HttpHeaderRequestFilter;
+import com.prayerlaputa.gateway.outbound.HttpGatewayOutboundWithHookHandler;
 import io.netty.buffer.Unpooled;
 import io.netty.channel.ChannelFutureListener;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.handler.codec.http.DefaultFullHttpResponse;
 import io.netty.handler.codec.http.FullHttpRequest;
 import io.netty.handler.codec.http.FullHttpResponse;
-import io.netty.handler.codec.http.HttpResponseStatus;
+import io.netty.handler.codec.http.HttpHeaders;
+import io.netty.handler.codec.http.HttpMessage;
 import static io.netty.handler.codec.http.HttpResponseStatus.NO_CONTENT;
 import static io.netty.handler.codec.http.HttpResponseStatus.OK;
 import io.netty.handler.codec.http.HttpUtil;
-import io.netty.handler.codec.http.HttpVersion;
 import static io.netty.handler.codec.http.HttpVersion.HTTP_1_1;
 import okhttp3.Call;
 import okhttp3.Callback;
 import okhttp3.Headers;
 import okhttp3.OkHttpClient;
-import okhttp3.OkHttpClient.Builder;
 import okhttp3.Request;
 import okhttp3.Response;
-import org.apache.http.Header;
+import org.apache.http.client.methods.RequestBuilder;
 import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
-import java.sql.Time;
-import java.util.concurrent.ArrayBlockingQueue;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.RejectedExecutionHandler;
-import java.util.concurrent.ThreadPoolExecutor;
+import java.util.Iterator;
+import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
 /**
  * @author chenglong.yu
  */
-public class OkHttpOutboundHandler implements HttpGatewayOutboundHandler {
+public class OkHttpOutboundHandler extends HttpGatewayOutboundWithHookHandler {
 
     private static Logger logger = LoggerFactory.getLogger(OkHttpOutboundHandler.class);
 
@@ -47,27 +42,37 @@ public class OkHttpOutboundHandler implements HttpGatewayOutboundHandler {
 
     public OkHttpOutboundHandler(String backendUrl) {
         this.backendUrl = backendUrl.endsWith("/") ? backendUrl.substring(0, backendUrl.length() - 1) : backendUrl;
+        //添加filter
+        this.addHookBeforeHandlingRequest(new HttpHeaderRequestFilter());
 
         client = new OkHttpClient.Builder()
                 .connectTimeout(60, TimeUnit.SECONDS)
                 .readTimeout(60, TimeUnit.SECONDS)
                 .writeTimeout(60, TimeUnit.SECONDS)
                 .retryOnConnectionFailure(true)
-                //TODO okhttp可以手工指定连接池，这里可以稍微瞅瞅怎么设置比较优雅，是否需要额外指定线程池来执行
+                //TODO okhttp可以手工指定连接池，这里可以稍微瞅瞅怎么设置比较优雅
                 .build();
     }
 
     @Override
-    public void handle(FullHttpRequest fullRequest, ChannelHandlerContext ctx) {
+    public void processRequest(FullHttpRequest fullRequest, ChannelHandlerContext ctx) throws NoSuchMethodException {
         final String url = this.backendUrl + fullRequest.uri();
         processGetRequest(fullRequest, ctx, url);
     }
 
-    private void processGetRequest(final FullHttpRequest fullHttpRequest, final ChannelHandlerContext ctx, final String url) {
-        Request request = new Request.Builder()
-                .url(url)
-                .build();
 
+    private Request createOkHttpRequest(final FullHttpRequest fullHttpRequest, final String url) {
+        Request.Builder builder = new Request.Builder();
+        builder.url(url);
+        for (Map.Entry<String, String> entry : fullHttpRequest.headers().entries()) {
+            builder.addHeader(entry.getKey(), entry.getValue());
+            System.out.println("request header <k,v>=(" + entry.getKey() + "," + entry.getValue() + ")");
+        }
+        return builder.build();
+    }
+
+    private void processGetRequest(final FullHttpRequest fullHttpRequest, final ChannelHandlerContext ctx, final String url) {
+        Request request = createOkHttpRequest(fullHttpRequest, url);
         client.newCall(request).enqueue(new Callback() {
             @Override
             public void onFailure(@NotNull Call call, @NotNull IOException e) {
@@ -81,19 +86,27 @@ public class OkHttpOutboundHandler implements HttpGatewayOutboundHandler {
         });
     }
 
+    private void copyHttpHeader(HttpHeaders from, HttpHeaders to) {
+        for (Map.Entry<String, String> entry : from.entries()) {
+            to.add(entry.getKey(), entry.getValue());
+        }
+    }
+
     private void forwardResponse(final FullHttpRequest fullRequest, final ChannelHandlerContext ctx, Response response) {
         FullHttpResponse resp = null;
         try {
             byte[] respBody = response.body().bytes();
 
-//            System.out.println("收到相应数据：" + new String(respBody));
+//            System.out.println("收到数据：" + new String(respBody));
 
             resp = new DefaultFullHttpResponse(HTTP_1_1, OK, Unpooled.wrappedBuffer(respBody));
             resp.headers().set("Content-Type", "application/json");
 
             Headers responseHeaders = response.headers();
+
             for (int i = 0; i < responseHeaders.size(); i++) {
                 resp.headers().set(responseHeaders.name(i), responseHeaders.value(i));
+//                System.out.println("header key="+ responseHeaders.name(i) + " value=" + responseHeaders.value(i));
             }
         } catch (Exception e) {
             logger.error("forwardResponse error:", e);
@@ -109,7 +122,6 @@ public class OkHttpOutboundHandler implements HttpGatewayOutboundHandler {
             }
             ctx.flush();
         }
-
     }
 
     public void exceptionCaught(ChannelHandlerContext ctx, Throwable cause) {

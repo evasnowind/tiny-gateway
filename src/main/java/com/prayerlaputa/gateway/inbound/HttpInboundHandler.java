@@ -1,7 +1,6 @@
 package com.prayerlaputa.gateway.inbound;
 
-import com.prayerlaputa.gateway.outbound.HttpGatewayOutboundHandler;
-import com.prayerlaputa.gateway.outbound.httpclient4.HttpOutboundHandler;
+import com.prayerlaputa.gateway.outbound.HttpGatewayOutboundWithHookHandler;
 import com.prayerlaputa.gateway.outbound.okhttp.OkHttpOutboundHandler;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelInboundHandlerAdapter;
@@ -14,7 +13,7 @@ public class HttpInboundHandler extends ChannelInboundHandlerAdapter {
 
     private static Logger logger = LoggerFactory.getLogger(HttpInboundHandler.class);
     private final String proxyServer;
-    private HttpGatewayOutboundHandler handler;
+    private HttpGatewayOutboundWithHookHandler handler;
     
     public HttpInboundHandler(String proxyServer) {
         this.proxyServer = proxyServer;
@@ -22,14 +21,9 @@ public class HttpInboundHandler extends ChannelInboundHandlerAdapter {
         handler = new OkHttpOutboundHandler(this.proxyServer);
 
         /*
-        TODO 利用SPI将handler做成可配置？
-         这里是创建channel时调用的，目前的实现中，每次创建一个新的channel，都会调用，
-         用SPI的方式不合适。后面可以这样：使用Netty中的单例模式（@Shareable），优化此处的handler，维持一个单独的线程池处理网络请求，共享handler。
+        TODO 这里是创建channel时调用的，目前的实现中，每次创建一个新的channel，都会调用，
+         后面可以这样：使用Netty中的单例模式（@Shareable），优化此处的handler，维持一个单独的线程池处理网络请求，共享handler。
          */
-//        ServiceLoader<HttpGatewayOutboundHandler> serviceLoader = ServiceLoader.load(HttpGatewayOutboundHandler.class);
-//        for (HttpGatewayOutboundHandler outboundHandler : serviceLoader) {
-//            handler = outboundHandler;
-//        }
     }
     
     @Override
